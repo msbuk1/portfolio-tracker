@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retirement Planner — Portfolio Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M3 3v18h18M7 16l4-4 4 4 5-5'/></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81' },
+            surface: { light:'#f8fafc', dark:'#0f172a' },
+            card: { light:'#ffffff', dark:'#1e293b' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .fade-in { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .glass { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    ::-webkit-scrollbar { width:6px } ::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:3px }
+    select option { background: #fff; color: #1e293b; }
+    .dark select option { background: #1e293b; color: #e2e8f0; }
+    select { background-color: transparent; }
+    .dark select { color-scheme: dark; }
+    input[type="checkbox"] { accent-color: #6366f1; }
+  </style>
+</head>
+<body class="bg-surface-light dark:bg-surface-dark text-slate-800 dark:text-slate-200 min-h-screen transition-colors duration-300">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/" class="flex items-center gap-3 hover:opacity-80 transition">
+          <div class="w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+          </div>
+          <h1 class="text-xl font-bold tracking-tight">Retirement Planner</h1>
+        </a>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-sync" class="px-3 py-1.5 text-sm rounded-lg border border-brand-300 dark:border-brand-700 text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition">
+          ↻ Sync from Portfolio
+        </button>
+        <button id="btn-dark" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Toggle dark mode">
+          <svg id="icon-sun" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg id="icon-moon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- Summary Bar -->
+    <section class="grid grid-cols-2 md:grid-cols-5 gap-3 fade-in">
+      <div class="rounded-xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Portfolio</p>
+        <p id="ret-total-pv" class="text-lg font-bold mt-1">£0</p>
+      </div>
+      <div class="rounded-xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Monthly Contributions</p>
+        <p id="ret-total-monthly" class="text-lg font-bold mt-1">£0/mo</p>
+      </div>
+      <div class="rounded-xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Years to Retirement</p>
+        <p id="ret-years-to-ret" class="text-lg font-bold mt-1">0</p>
+      </div>
+      <div class="rounded-xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Portfolio at Retirement</p>
+        <p id="ret-portfolio-at-ret" class="text-lg font-bold mt-1">£0</p>
+      </div>
+      <div class="rounded-xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Tax-Free Portion</p>
+        <p id="ret-tax-free-pct" class="text-lg font-bold mt-1">0%</p>
+      </div>
+    </section>
+
+    <!-- Two Column: Inputs + Chart -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Left: Inputs -->
+      <div class="lg:col-span-1 space-y-6">
+
+        <!-- Accounts -->
+        <section class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm fade-in">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-semibold">Accounts</h3>
+            <button onclick="window.retirementApp.addAccount()" class="text-xs text-brand-600 dark:text-brand-400 hover:underline">+ Add</button>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Split your portfolio across ISA, SIPP, GIA, Cash, etc.</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                  <th class="text-left py-1.5 font-medium">Name</th>
+                  <th class="text-left py-1.5 font-medium">Owner</th>
+                  <th class="text-right py-1.5 font-medium">Value</th>
+                  <th class="text-right py-1.5 font-medium">Monthly</th>
+                  <th class="text-center py-1.5 font-medium" title="25% tax-free lump sum">25%</th>
+                  <th class="py-1.5 w-8"></th>
+                </tr>
+              </thead>
+              <tbody id="tbody-accounts"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Person 1 -->
+        <section class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm fade-in">
+          <h3 class="text-sm font-semibold mb-3">Person 1</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="col-span-2">
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Date of Birth</label>
+              <input type="date" data-model="p1DOB" id="p1-dob"
+                class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+              <p id="p1-spa-display" class="text-xs text-slate-400 mt-1"></p>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Current Age</label>
+              <input type="number" data-model="p1CurrentAge" min="18" max="100" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Retirement Age</label>
+              <input type="number" data-model="p1RetirementAge" min="50" max="80" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">State Pension Age</label>
+              <input type="number" data-model="p1StatePensionAge" min="60" max="70" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Life Expectancy</label>
+              <input type="number" data-model="p1LifeExpectancy" min="70" max="110" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">State Pension (£/yr)</label>
+              <input type="number" data-model="p1StatePension" min="0" step="500" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+          </div>
+        </section>
+
+        <!-- Person 2 (Partner) -->
+        <section class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm fade-in">
+          <h3 class="text-sm font-semibold mb-3">Person 2 (Partner)</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="col-span-2">
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Date of Birth</label>
+              <input type="date" data-model="p2DOB" id="p2-dob"
+                class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+              <p id="p2-spa-display" class="text-xs text-slate-400 mt-1"></p>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Current Age</label>
+              <input type="number" data-model="p2CurrentAge" min="18" max="100" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Retirement Age</label>
+              <input type="number" data-model="p2RetirementAge" min="50" max="80" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">State Pension Age</label>
+              <input type="number" data-model="p2StatePensionAge" min="60" max="70" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Life Expectancy</label>
+              <input type="number" data-model="p2LifeExpectancy" min="70" max="110" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">State Pension (£/yr)</label>
+              <input type="number" data-model="p2StatePension" min="0" step="500" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+          </div>
+        </section>
+
+        <!-- Household Expenses -->
+        <section class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm fade-in">
+          <h3 class="text-sm font-semibold mb-3">Household Expenses (Annual, Today's Money)</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">What you'd need each year in retirement</p>
+          <div class="space-y-3">
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">🏠 Minimum (low)</label>
+              <input type="number" data-model="householdExpenses.low" min="0" step="1000" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">✨ Moderate (med)</label>
+              <input type="number" data-model="householdExpenses.med" min="0" step="1000" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">🌟 Comfortable (high)</label>
+              <input type="number" data-model="householdExpenses.high" min="0" step="1000" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+          </div>
+        </section>
+
+        <!-- Assumptions -->
+        <section class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm fade-in">
+          <h3 class="text-sm font-semibold mb-3">Assumptions</h3>
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Inflation %</label>
+              <input type="number" data-model="inflationRate" min="0" max="10" step="0.5" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Pre-Ret Return %</label>
+              <input type="number" data-model="preRetReturn" min="0" max="15" step="0.5" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Post-Ret Return %</label>
+              <input type="number" data-model="postRetReturn" min="0" max="10" step="0.5" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right: Results -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Lifestyle Scenarios -->
+        <section class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm fade-in">
+          <h3 class="text-sm font-semibold mb-3">Lifestyle Scenarios</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Click a scenario to see the drawdown schedule. Inflation-adjusted withdrawals, state pensions included.</p>
+          <div id="scenario-cards" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+        </section>
+
+        <!-- Drawdown Chart -->
+        <section class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm fade-in">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <h3 class="text-sm font-semibold">Drawdown Schedule</h3>
+            <div id="drawdown-status" class="text-xs font-medium"></div>
+          </div>
+          <div class="h-80"><canvas id="chart-drawdown"></canvas></div>
+          <div class="grid grid-cols-3 gap-3 mt-3">
+            <div class="text-xs text-slate-500 dark:text-slate-400">
+              <span class="font-medium">Withdrawal Rate:</span> <span id="drawdown-swr" class="font-bold">—</span>
+            </div>
+            <div class="text-xs text-slate-500 dark:text-slate-400 text-center">
+              <span class="font-medium">Years Lasted:</span> <span id="drawdown-years" class="font-bold">—</span>
+            </div>
+            <div id="drawdown-tax" class="text-xs text-right"></div>
+          </div>
+          <div id="drawdown-aftertax" class="text-xs mt-2 text-center"></div>
+        </section>
+
+        <!-- Year-by-Year Table -->
+        <section class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm fade-in">
+          <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold">Year-by-Year Schedule</h3>
+                    <button onclick="window.retirementApp.downloadScheduleCSV()" class="px-2.5 py-1 text-xs rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                      <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+                      CSV
+                    </button>
+                  </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Every year shown. Withdrawals and pensions are inflation-adjusted.</p>
+          <div class="overflow-x-auto max-h-96 overflow-y-auto">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-card-light dark:bg-card-dark">
+                  <th class="text-left py-1.5 font-medium">Year</th>
+                  <th class="text-left py-1.5 font-medium">Age</th>
+                  <th class="text-right py-1.5 font-medium">Need</th>
+                  <th class="text-right py-1.5 font-medium">State Pension</th>
+                  <th class="text-right py-1.5 font-medium">Tax</th>
+                  <th class="text-right py-1.5 font-medium">ISA</th>
+                  <th class="text-right py-1.5 font-medium">SIPP</th>
+                  <th class="text-right py-1.5 font-medium">GIA</th>
+                  <th class="text-right py-1.5 font-medium">Cash</th>
+                  <th class="text-right py-1.5 font-medium">Portfolio Value</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-schedule"></tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none"></div>
+
+  <script type="module">
+    import { init } from './js/retirement-setup.js';
+
+    // Apply saved dark mode from shared pf_tracker_data state
+    try {
+      const raw = localStorage.getItem('pf_tracker_data');
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (data.dark) {
+          document.documentElement.classList.add('dark');
+        }
+      }
+    } catch {}
+
+    init();
+
+    // Dark mode toggle — sync with pf_tracker_data
+    document.getElementById('btn-dark').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      const isDark = document.documentElement.classList.contains('dark');
+      // Update pf_tracker_data state
+      try {
+        const raw = localStorage.getItem('pf_tracker_data');
+        if (raw) {
+          const data = JSON.parse(raw);
+          data.dark = isDark;
+          localStorage.setItem('pf_tracker_data', JSON.stringify(data));
+        } else {
+          localStorage.setItem('pf_tracker_data', JSON.stringify({ dark: isDark }));
+        }
+      } catch {}
+    });
+  </script>
+</body>
+</html>

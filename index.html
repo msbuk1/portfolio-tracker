@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M3 3v18h18M7 16l4-4 4 4 5-5'/></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81' },
+            surface: { light:'#f8fafc', dark:'#0f172a' },
+            card: { light:'#ffffff', dark:'#1e293b' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .fade-in { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .glass { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    input[type="file"] { display:none; }
+    .drag-over { border-color: #6366f1 !important; background: rgba(99,102,241,0.08) !important; }
+    .dark .drag-over { background: rgba(99,102,241,0.15) !important; }
+    ::-webkit-scrollbar { width:6px } ::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:3px }
+    select option { background: #fff; color: #1e293b; }
+    .dark select option { background: #1e293b; color: #e2e8f0; }
+    select { background-color: transparent; }
+    .dark select { color-scheme: dark; }
+  </style>
+</head>
+<body class="bg-surface-light dark:bg-surface-dark text-slate-800 dark:text-slate-200 min-h-screen transition-colors duration-300">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 16l4-4 4 4 5-5"/></svg>
+        </div>
+        <h1 class="text-xl font-bold tracking-tight">Portfolio Tracker</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/retirement.html" class="px-3 py-1.5 text-sm rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-medium transition">
+          🏖️ Retirement Planner
+        </a>
+        <button id="btn-export" class="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Export data as JSON">
+          <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+        </button>
+        <label class="px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer" title="Import JSON data">
+          <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 3v12m0 0l-4-4m4 4l4-4"/></svg>
+          <input type="file" id="import-json" accept=".json">
+        </label>
+        <button id="btn-dark" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Toggle dark mode">
+          <svg id="icon-sun" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg id="icon-moon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- Dashboard Metrics -->
+    <section id="metrics" class="grid grid-cols-1 md:grid-cols-3 gap-4 fade-in">
+      <div class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Value</p>
+        <p id="m-value" class="text-2xl font-bold mt-1">£0.00</p>
+        <p id="m-value-sub" class="text-xs text-slate-400 mt-1">&nbsp;</p>
+      </div>
+      <div class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Gain / Loss</p>
+        <p id="m-gl" class="text-2xl font-bold mt-1">£0.00</p>
+        <p id="m-gl-pct" class="text-xs mt-1">&nbsp;</p>
+      </div>
+      <div class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Cost Basis</p>
+        <p id="m-cost" class="text-2xl font-bold mt-1">£0.00</p>
+        <p id="m-count" class="text-xs text-slate-400 mt-1">0 assets</p>
+      </div>
+    </section>
+
+    <!-- Charts Row -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 fade-in">
+      <div class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+        <h3 class="text-sm font-semibold mb-3">Allocation</h3>
+        <div class="relative" style="max-height:260px"><canvas id="chart-alloc"></canvas></div>
+      </div>
+      <div class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+        <h3 class="text-sm font-semibold mb-3">Performance Timeline (Imported)</h3>
+        <div class="relative" style="max-height:260px"><canvas id="chart-perf"></canvas></div>
+        <p id="perf-placeholder" class="text-xs text-slate-400 text-center mt-2">Import a financial statement to see historical performance</p>
+      </div>
+    </section>
+
+    <!-- Projection Chart -->
+    <section class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm fade-in">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <h3 class="text-sm font-semibold">Projected Growth</h3>
+        <div class="flex items-center gap-2 text-xs">
+          <label class="text-slate-500 dark:text-slate-400">Annual Rate %</label>
+          <input id="proj-rate" type="number" value="7" step="0.5" class="w-16 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-transparent text-right">
+          <span id="proj-pmt-label" class="text-slate-500 dark:text-slate-400 ml-2">£0/mo from holdings</span>
+        </div>
+      </div>
+      <div class="h-72"><canvas id="chart-proj"></canvas></div>
+    </section>
+
+    <!-- Assets Table + Add Form -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 fade-in">
+      <!-- Add Asset Form -->
+      <div class="lg:col-span-1 rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+        <h3 class="text-sm font-semibold mb-4">Add Asset</h3>
+        <form id="form-add" class="space-y-3">
+          <div>
+            <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Name / Ticker</label>
+            <input id="f-name" required placeholder="e.g. AAPL" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Tax Wrapper</label>
+            <select id="f-wrapper" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+              <option value="GIA">GIA (General Investment Account)</option>
+              <option value="ISA">ISA (Individual Savings Account)</option>
+              <option value="SIPP">SIPP (Self-Invested Personal Pension)</option>
+              <option value="Cash">Cash / Savings</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Cost Basis (£)</label>
+              <input id="f-cost" required type="number" step="0.01" min="0" placeholder="1000" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Current Value (£)</label>
+              <input id="f-value" required type="number" step="0.01" min="0" placeholder="1200" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Monthly Addition (£)</label>
+            <input id="f-monthly" type="number" step="1" min="0" placeholder="0" value="0" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+          </div>
+          <button type="submit" class="w-full py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition">Add Asset</button>
+        </form>
+
+        <!-- Statement Ingestion -->
+        <div class="mt-6 pt-5 border-t border-slate-200 dark:border-slate-700">
+          <h3 class="text-sm font-semibold mb-3">Import Statement</h3>
+          <div id="drop-zone" class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-4 text-center cursor-pointer transition hover:border-brand-400">
+            <svg class="w-8 h-8 mx-auto text-slate-400 mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Drop CSV, OFX, QFX, or PDF here</p>
+            <p class="text-xs text-slate-400 mt-1">or click to browse</p>
+            <input type="file" id="stmt-file" accept=".csv,.ofx,.qfx,.pdf,.xls,.xlsx">
+          </div>
+          <div id="stmt-status" class="mt-2 text-xs text-slate-500 dark:text-slate-400 hidden"></div>
+        </div>
+      </div>
+
+      <!-- Assets List -->
+      <div class="lg:col-span-2 rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm overflow-x-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold">Holdings</h3>
+          <input id="search-assets" placeholder="Search…" class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-xs w-40 focus:ring-2 focus:ring-brand-500 outline-none">
+        </div>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-xs text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+              <th class="text-left py-2 font-medium">Asset</th>
+              <th class="text-left py-2 font-medium">Wrapper</th>
+              <th class="text-right py-2 font-medium">Cost</th>
+              <th class="text-right py-2 font-medium">Value</th>
+              <th class="text-right py-2 font-medium">Monthly</th>
+              <th class="text-right py-2 font-medium">Gain/Loss</th>
+              <th class="text-right py-2 font-medium">%</th>
+              <th class="py-2 w-14"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody-assets"></tbody>
+        </table>
+        <p id="empty-msg" class="text-center text-sm text-slate-400 py-8">No assets yet. Add one or import a statement.</p>
+      </div>
+    </section>
+
+    <!-- Imported Transactions Log -->
+    <section id="section-txn" class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-5 shadow-sm fade-in hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold">Imported Transactions</h3>
+        <button id="btn-clear-txn" class="text-xs text-red-500 hover:underline">Clear All</button>
+      </div>
+      <div class="overflow-x-auto max-h-64 overflow-y-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-card-light dark:bg-card-dark">
+              <th class="text-left py-1.5 font-medium">Date</th>
+              <th class="text-left py-1.5 font-medium">Type</th>
+              <th class="text-left py-1.5 font-medium">Description</th>
+              <th class="text-right py-1.5 font-medium">Amount</th>
+              <th class="text-right py-1.5 font-medium">Balance</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-txn"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Edit Modal -->
+  <div id="edit-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" data-close-modal></div>
+    <div class="relative mx-auto mt-20 w-full max-w-md px-4">
+      <div class="rounded-2xl bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 p-6 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-base font-semibold">Edit Asset</h3>
+          <button data-close-modal class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        </div>
+        <form id="form-edit" class="space-y-3">
+          <input type="hidden" id="e-id">
+          <div>
+            <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Name / Ticker</label>
+            <input id="e-name" required class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Tax Wrapper</label>
+            <select id="e-wrapper" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+              <option value="GIA">GIA (General Investment Account)</option>
+              <option value="ISA">ISA (Individual Savings Account)</option>
+              <option value="SIPP">SIPP (Self-Invested Personal Pension)</option>
+              <option value="Cash">Cash / Savings</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Cost Basis (£)</label>
+              <input id="e-cost" required type="number" step="0.01" min="0" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Current Value (£)</label>
+              <input id="e-value" required type="number" step="0.01" min="0" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-slate-500 dark:text-slate-400">Monthly Addition (£)</label>
+            <input id="e-monthly" type="number" step="1" min="0" class="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+          </div>
+          <div class="flex gap-2 pt-2">
+            <button type="button" data-close-modal class="flex-1 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition">Cancel</button>
+            <button type="submit" class="flex-1 py-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none"></div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>
